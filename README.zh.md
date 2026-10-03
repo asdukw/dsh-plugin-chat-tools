@@ -14,7 +14,9 @@
 ## 前置条件
 
 - 运行中的 `dsh`，带 `@deepseek-ai/dsh-tools` >= `0.1.0-rc.6`（peer dependency）。
-- 一个可通过 HTTP 访问的桥宿主（契约与 `dsh-plugin-android-tools` 相同）。
+- 一个可通过 HTTP 访问的桥宿主（契约与
+  [dsh-plugin-android-tools](https://github.com/asdukw/dsh-plugin-android-tools/blob/main/README.zh.md#桥契约)
+  相同，其 README 还有可运行的 mock 宿主与宿主编写清单）。
 
 ## 工具
 

@@ -16,7 +16,9 @@ to be mounted.
 ## Requirements
 
 - `dsh` running with `@deepseek-ai/dsh-tools` >= `0.1.0-rc.6` (peer dependency).
-- A bridge host reachable over HTTP (same contract as `dsh-plugin-android-tools`).
+- A bridge host reachable over HTTP (same contract as
+  [dsh-plugin-android-tools](https://github.com/asdukw/dsh-plugin-android-tools#bridge-contract);
+  that README also has a runnable mock host and a host-author checklist).
 
 ## Tools
 
