@@ -1,13 +1,10 @@
-// dsh 聊天页插件：在 dsh-plugin-android-tools 的原子设备动作之上，提供聊天页的
-// 上下文收集与增量跟踪。经同一 DeviceBridgeServer（POST /action）调用
-// read_screen / swipe；已见行状态只存在于本插件进程内存（一次任务生命周期）。
+// dsh plugin: chat-page context collection and incremental tracking on top of the
+// bridge's read_screen / swipe actions (POST /action). Seen-line state lives in
+// this plugin's process memory only (one task lifetime).
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 export const name = 'dsh-chat-tools'
 export const inject = ['tools']
-
-const baseUrl = process.env.MEMEX_BRIDGE_URL
-const token = process.env.MEMEX_BRIDGE_TOKEN
 
 // 群聊增量跟踪：进入聊天页后，read_screen 的文本行按「去掉 ref 与坐标」归一化去重，
 // 只把新增行喂给模型，并附最近上下文。这样同一页持续聊天时上下文是连续的、增量小的。
@@ -32,14 +29,16 @@ function chatLines(payload) {
 }
 
 async function call(action, args = {}) {
-  if (!baseUrl || !token) throw new Error('MEMEX_BRIDGE_URL/TOKEN 未注入')
+  const baseUrl = process.env.ANDROID_BRIDGE_URL
+  const token = process.env.ANDROID_BRIDGE_TOKEN
+  if (!baseUrl || !token) throw new Error('ANDROID_BRIDGE_URL/ANDROID_BRIDGE_TOKEN not set')
   const response = await fetch(`${baseUrl}/action`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-memex-token': token },
+    headers: { 'content-type': 'application/json', 'x-android-bridge-token': token },
     body: JSON.stringify({ action, ...args }),
   })
   const body = await response.json()
-  if (body.ok !== true) throw new Error(body.summary ?? `设备动作失败：${action}`)
+  if (body.ok !== true) throw new Error(body.summary ?? `device action failed: ${action}`)
   return body.payload ?? body.summary ?? 'ok'
 }
 

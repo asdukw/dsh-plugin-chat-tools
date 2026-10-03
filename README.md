@@ -3,12 +3,20 @@
 ![test](https://github.com/asdukw/dsh-plugin-chat-tools/actions/workflows/test.yml/badge.svg)
 
 [DeepSeek Harness](https://deepseek.com/harness/) (`dsh`) plugin for working inside a
-chat page on an Android device: collect the visible conversation once, then read only
-the delta as new messages arrive. It is a companion to
-[dsh-plugin-android-tools](https://github.com/asdukw/dsh-plugin-android-tools) and
-talks to the same local HTTP bridge.
+chat page through a device UI automation bridge: collect the visible conversation once,
+then read only the delta as new messages arrive.
+
+Companion to [dsh-plugin-android-tools](https://github.com/asdukw/dsh-plugin-android-tools).
+Both plugins talk to the same bridge and share the same contract; this one calls the
+bridge's `read_screen` / `swipe` actions directly, so the core tools plugin does not have
+to be mounted.
 
 [中文说明](README.zh.md)
+
+## Requirements
+
+- `dsh` running with `@deepseek-ai/dsh-tools` >= `0.1.0-rc.6` (peer dependency).
+- A bridge host reachable over HTTP (same contract as `dsh-plugin-android-tools`).
 
 ## Tools
 
@@ -18,49 +26,47 @@ talks to the same local HTTP bridge.
 | `read_chat` | Read the page in place and return only lines not seen before, plus the last 10 context lines |
 | `wait(seconds)` | Client-side sleep (10–120s) to give the other side time to reply; nothing is sent to the device |
 
-The dedupe state lives in the plugin process memory, so it tracks one chat page
-per dsh task. Use `collect_chat` right after entering a chat, then `read_chat`
-repeatedly without leaving/rentering the conversation.
-
 ## Install
 
 ```bash
-dsh plugin add github:asdukw/dsh-plugin-chat-tools
-# pin a release tag:
-dsh plugin add github:asdukw/dsh-plugin-chat-tools#v0.1.0
+# from git, pinned to a release tag:
+dsh plugin add github:asdukw/dsh-plugin-chat-tools#v0.2.0
+
+# or from the tarball attached to any GitHub Release:
+dsh plugin add ./dsh-plugin-chat-tools-0.2.0.tgz
+
+# once npm publishing is enabled:
+dsh plugin add dsh-plugin-chat-tools
 ```
 
-Every GitHub Release attaches an `npm pack` tarball; you can install it directly:
+The package ships a `dsh.bundle` layer (`cordis.patch.yml`) that inserts the plugin row
+on install. Restart `dsh` afterwards.
 
-```bash
-dsh plugin add ./dsh-plugin-chat-tools-0.1.0.tgz
-```
-
-The package ships a `dsh.bundle` layer (`cordis.patch.yml`) that inserts the plugin
-row on install. Restart `dsh` afterwards.
-
-## Configuration
-
-Same bridge environment variables as `dsh-plugin-android-tools`, injected by the
-host Android app:
+## Configure
 
 | Variable | Meaning |
 |---|---|
-| `MEMEX_BRIDGE_URL` | Bridge base URL, e.g. `http://127.0.0.1:37812` |
-| `MEMEX_BRIDGE_TOKEN` | Per-process random token |
+| `ANDROID_BRIDGE_URL` | Bridge base URL, e.g. `http://127.0.0.1:37812` |
+| `ANDROID_BRIDGE_TOKEN` | Shared token checked on every request, usually random per host start |
 
-The plugin calls the bridge's `read_screen` and `swipe` actions directly, so it
-works independently of the core tools plugin being mounted. The bridge contract is
-documented in
-[dsh-plugin-android-tools/README.md](https://github.com/asdukw/dsh-plugin-android-tools#bridge-contract).
+If either is missing, tool calls fail with
+`ANDROID_BRIDGE_URL/ANDROID_BRIDGE_TOKEN not set`.
+
+## Usage
+
+Right after entering a chat: call `collect_chat` once (read + swipe up a few rounds,
+line-deduplicated), then call `read_chat` repeatedly to track new messages in place;
+`wait(seconds)` pauses client-side between reads. Do not leave or re-enter the
+conversation while tracking — the seen-line state lives in the plugin process memory and
+tracks one chat page per task.
 
 ## Notes
 
 - `collect_chat` normalizes lines by stripping node refs (`[12]`) and coordinates
-  (`@(x,y)`) before deduplicating, so a repeated full-screen read only yields truly
-  new lines.
-- Screen text can be personal data; tool results are only returned to the model and
-  are never logged by this plugin.
+  (`@(x,y)`) before deduplicating, so a repeated full-screen read only yields truly new
+  lines.
+- Screen text can be personal data; tool results are only returned to the model and are
+  never logged by this plugin.
 
 ## Development
 
@@ -71,16 +77,12 @@ No dependencies needed for the smoke test (a loader stub replaces
 npm test
 ```
 
-Release: push a `v*` tag. The `release` workflow runs the tests, packs the package
-and creates a GitHub Release with the `.tgz` attached (install it with
-`dsh plugin add ./dsh-plugin-chat-tools-<version>.tgz`, or install the tag directly
-with `dsh plugin add github:asdukw/dsh-plugin-chat-tools#v<version>`).
-
-npm publishing is prepared but gated: publish the first version locally
-(`npm login`, then `npm publish --access public`), add a trusted publisher on
-npmjs.com (package → Settings → Trusted Publisher → GitHub Actions: user `asdukw`,
-repository `dsh-plugin-chat-tools`, workflow filename `release.yml`, allowed
-action `npm publish`), then enable the workflow's npm job:
+Release: push a `v*` tag. The `release` workflow runs the tests, packs the package and
+creates a GitHub Release with the `.tgz` attached. npm publishing is prepared as a
+gated job: publish the first version locally (`npm login`, then `npm publish --access
+public`), add a trusted publisher on npmjs.com (package → Settings → Trusted Publisher
+→ GitHub Actions: user `asdukw`, repository `dsh-plugin-chat-tools`, workflow filename
+`release.yml`, allowed action `npm publish`), then enable the job:
 
 ```bash
 gh variable set NPM_PUBLISH_READY --body true -R asdukw/dsh-plugin-chat-tools

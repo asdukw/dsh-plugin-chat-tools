@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-chat-tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Chat-page context tracking tools for DeepSeek Harness (dsh): collect and incrementally read on-screen chat messages over a local HTTP bridge",
   "type": "module",
   "main": "index.mjs",
